@@ -1,0 +1,10 @@
+#! /bin/sh
+
+[ -e $SNAP_DATA/log ] || mkdir -p $SNAP_DATA/log
+[ -e $SNAP_DATA/restoreDir ] || mkdir -p $SNAP_DATA/restoreDir
+[ -e $SNAP_DATA/fhem.cfg ] || cp $SNAP/opt/fhem/fhem.cfg.orig $SNAP_DATA/fhem.cfg
+
+if [ ! -e $SNAP_DATA/gplot ]; then
+	mkdir -p $SNAP_DATA/gplot
+	cp -a $SNAP/opt/fhem/www/gplot.orig/* $SNAP_DATA/gplot/
+fi

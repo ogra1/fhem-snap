@@ -1,0 +1,65 @@
+name: fhem
+base: core22
+adopt-info: fhem
+summary: FHEM Home automation
+description: |
+  FHEM (TM) is a GPL'd perl server for house automation. It is used to automate
+  some common tasks in the household like switching lamps / shutters / heating / etc.
+  and to log events like temperature / humidity / power consumption.
+
+  The program runs as a server, you can control it via web or smartphone frontends,
+  telnet or TCP/IP directly.
+
+grade: stable
+confinement: strict
+
+apps:
+  fhem:
+    daemon: forking
+    command: usr/bin/perl /opt/fhem/fhem.pl /opt/fhem/fhem.cfg
+    install-mode: disable
+    environment:
+      LC_ALL: "C.UTF-8"
+      PERL5LIB:  "$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/perl-base/:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/perl5/5.34/:$SNAP/usr/share/perl5/:$SNAP/usr/share/perl/5.34.0/:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/perl/5.34/:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/perl/5.34.0/:$SNAP/opt/fhem/FHEM"
+    plugs:
+      - network
+      - network-bind
+      - raw-usb
+      - serial-port
+
+layout:
+  /opt/fhem:
+    bind: $SNAP/opt/fhem
+
+parts:
+  fhem:
+    plugin: make
+    source: https://github.com/fhem/fhem-mirror.git
+    source-branch: master
+    source-subdir: fhem
+    source-depth: 1
+    build-environment:
+      - ROOT: $SNAPCRAFT_PART_INSTALL
+    stage-packages:
+      - libdevice-serialport-perl
+      - libperl5.34
+      - perl-base
+      - perl-modules-5.34
+      - usbutils
+    override-prime: |
+      # run default "make install"
+      craftctl default
+      # set package version
+      VER="$(grep ^VERS= $CRAFT_PART_SRC/fhem/Makefile | sed 's/^.*=//')"
+      craftctl set version="$VER"
+      # fix modpath
+      sed -i 's/modpath.*$/modpath \/opt\/fhem/' opt/fhem/fhem.cfg
+      # back up original files
+      mv opt/fhem/fhem.cfg opt/fhem/fhem.cfg.orig
+      mv opt/fhem/www/gplot opt/fhem/www/gplot.orig
+      # create log dir and links for writable files (later processed by install hook)
+      rm -rf opt/fhem/log
+      ln -sf /var/snap/$CRAFT_PROJECT_NAME/current/log opt/fhem/log
+      ln -sf /var/snap/$CRAFT_PROJECT_NAME/current/restoreDir opt/fhem/restoreDir
+      ln -sf /var/snap/$CRAFT_PROJECT_NAME/current/gplot opt/fhem/www/gplot
+      ln -sf /var/snap/$CRAFT_PROJECT_NAME/current/fhem.cfg opt/fhem/fhem.cfg
